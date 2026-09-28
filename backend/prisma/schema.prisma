@@ -1,0 +1,68 @@
+// Prisma schema for CafeApp - Phase 0 foundation
+// Full schema will be built across phases
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  CUSTOMER
+  CAFE_ADMIN
+  CAFE_STAFF
+  KITCHEN
+}
+
+model User {
+  id            String         @id @default(uuid()) @db.Uuid
+  email         String         @unique @db.Citext
+  passwordHash  String
+  name          String
+  phone         String?        @unique @db.Citext
+  role          UserRole
+  isActive      Boolean        @default(true)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  @@index([role])
+  @@index([isActive])
+}
+
+model RefreshToken {
+  id          String   @id @default(uuid()) @db.Uuid
+  userId      String   @db.Uuid
+  tokenHash   String   @unique
+  expiresAt   DateTime
+  revokedAt   DateTime?
+  replacedById String?  @db.Uuid
+  createdAt   DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model CafeProfile {
+  id                 String   @id @default("00000000-0000-4000-8000-000000000001") @db.Uuid
+  name               String
+  address            String
+  phone              String
+  email              String
+  gstin              String?
+  gstPercent         Decimal  @db.Decimal(5, 2) @default(5.00)
+  currency           String   @default("INR")
+  timezone           String   @default("Asia/Kolkata")
+  logoUrl            String?
+  openingTime        String   // "08:00"
+  closingTime        String   // "22:00"
+  isAcceptingOrders  Boolean  @default(true)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@index([isAcceptingOrders])
+}

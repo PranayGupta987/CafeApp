@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ls -la \"/c/Users/Pranay Gupta/.claude/plans/\")",
+      "Bash(echo \"=== sdkmanager ===\"; ls \"/c/Users/Pranay Gupta/AppData/Local/Android/Sdk/cmdline-tools/latest/bin/sdkmanager\" 2>/dev/null; echo \"---\"; \"/c/Users/Pranay Gupta/AppData/Local/Android/Sdk/cmdline-tools/latest/bin/sdkmanager\" --list_installed 2>&1 | head -20; echo \"=== licenses ===\"; ls \"/c/Users/Pranay Gupta/AppData/Local/Android/Sdk/licenses\" 2>/dev/null; echo \"=== platform-tools ===\"; ls \"/c/Users/Pranay Gupta/AppData/Local/Android/Sdk/platform-tools/\" 2>/dev/null; echo \"=== emulator bin64 ===\"; ls \"/c/Users/Pranay Gupta/AppData/Local/Android/Sdk/emulator/bin64/\" 2>/dev/null; echo \"=== gradle in sdk ===\"; find \"/c/Users/Pranay Gupta/AppData/Local/Android/Sdk\" -maxdepth 3 -name \"gradle\" 2>/dev/null; echo \"=== AGP available ===\"; find \"/c/Users/Pranay Gupta/.gradle\" -maxdepth 3 -name \"gradle-8*\" 2>/dev/null | head; echo \"=== gradle cache ===\"; ls \"/c/Users/Pranay Gupta/.gradle\" 2>/dev/null | head)",
+      "Bash(# Start Docker Desktop if possible *)",
+      "Bash(# Locate Docker Desktop and Gradle 8.6 *)",
+      "Bash(npm install *)",
+      "Bash(export _JAVA_OPTIONS=\"-Djava.net.preferIPv4Stack=true -Djava.net.preferIPv6Addresses=false\")",
+      "Bash(./gradlew assembleDebug --no-daemon)",
+      "Bash(ls -la \"C:/Users/Pranay Gupta/AppData/Local/Android/Sdk/cmdline-tools\")",
+      "Bash(ls -la \"C:/Users/Pranay Gupta/AppData/Local/Android/Sdk\")",
+      "Bash(ls -la ~/.android/avd/)"
+    ]
+  }
+}
