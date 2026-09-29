@@ -69,6 +69,7 @@ import com.cafeapp.core.network.dto.CafeDto
 import com.cafeapp.core.network.dto.MenuItemDto
 import com.cafeapp.core.network.dto.OfferDto
 import com.cafeapp.core.ui.CurrencyFormatter
+import com.cafeapp.core.ui.components.CafeAsyncImage
 import com.cafeapp.core.ui.components.CafeButton
 import com.cafeapp.core.ui.components.CafeErrorState
 import com.cafeapp.core.ui.components.CafeLoadingIndicator
@@ -552,14 +553,24 @@ fun PopularItemRow(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.weight(1f)
             ) {
-                VegIndicator(isVeg = item.isVeg)
-                Spacer(modifier = Modifier.width(Dimens.space8))
+                CafeAsyncImage(
+                    imageUrl = item.imageUrl,
+                    contentDescription = item.name,
+                    modifier = Modifier
+                        .size(56.dp)
+                        .clip(RoundedCornerShape(Dimens.radiusSmall))
+                )
+                Spacer(modifier = Modifier.width(Dimens.space12))
                 Column {
                     Row(verticalAlignment = Alignment.CenterVertically) {
+                        VegIndicator(isVeg = item.isVeg)
+                        Spacer(modifier = Modifier.width(Dimens.space6))
                         Text(
                             text = item.name,
                             style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
                             color = MaterialTheme.colorScheme.onSurface,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
                         if (item.displayOrder <= 2) {
                             Spacer(modifier = Modifier.width(Dimens.space4))

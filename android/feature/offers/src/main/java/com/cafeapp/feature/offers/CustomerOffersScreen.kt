@@ -3,6 +3,7 @@ package com.cafeapp.feature.offers
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -20,12 +21,15 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Discount
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
@@ -39,7 +43,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -51,8 +56,6 @@ import com.cafeapp.core.ui.components.CafeErrorState
 import com.cafeapp.core.ui.components.CafeLoadingIndicator
 import com.cafeapp.core.ui.components.CafeTopAppBar
 import com.cafeapp.core.ui.components.PromoBadge
-import com.cafeapp.core.ui.theme.CafeBrown
-import com.cafeapp.core.ui.theme.CafeGold
 import com.cafeapp.core.ui.theme.Dimens
 import com.cafeapp.core.ui.theme.StatusSuccess
 
@@ -65,6 +68,7 @@ fun CustomerOffersScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val cartState by viewModel.cartState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
+    val clipboardManager = LocalClipboardManager.current
 
     LaunchedEffect(uiState.userNotification) {
         uiState.userNotification?.let { msg ->
@@ -132,7 +136,7 @@ fun CustomerOffersScreen(
                                             color = MaterialTheme.colorScheme.onPrimaryContainer,
                                         )
                                         Text(
-                                            text = "Tap 'Apply' to automatically attach discount to your cart.",
+                                            text = "Tap 'Apply' or copy the promo code to get instant savings.",
                                             style = MaterialTheme.typography.bodySmall,
                                             color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f),
                                         )
@@ -149,11 +153,31 @@ fun CustomerOffersScreen(
                             OfferCard(
                                 offer = offer,
                                 isApplied = isApplied,
-                                onApply = { viewModel.applyOffer(offer) }
+                                onClick = { viewModel.showOfferDetails(offer) },
+                                onApply = { viewModel.applyOffer(offer) },
+                                onCopyCode = {
+                                    clipboardManager.setText(AnnotatedString(offer.code))
+                                    viewModel.onCodeCopied(offer.code)
+                                }
                             )
                         }
                     }
                 }
+            }
+
+            // Offer Detail Bottom Sheet
+            uiState.selectedOfferForDetails?.let { offer ->
+                val isApplied = cartState.appliedOffer?.code == offer.code
+                OfferDetailBottomSheet(
+                    offer = offer,
+                    isApplied = isApplied,
+                    onDismiss = { viewModel.dismissOfferDetails() },
+                    onApply = { viewModel.applyOffer(offer) },
+                    onCopyCode = {
+                        clipboardManager.setText(AnnotatedString(offer.code))
+                        viewModel.onCodeCopied(offer.code)
+                    }
+                )
             }
         }
     }
@@ -163,11 +187,15 @@ fun CustomerOffersScreen(
 fun OfferCard(
     offer: OfferDto,
     isApplied: Boolean,
+    onClick: () -> Unit,
     onApply: () -> Unit,
+    onCopyCode: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Card(
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
         shape = RoundedCornerShape(Dimens.radiusMedium),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface,
@@ -185,8 +213,8 @@ fun OfferCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                // Promo Code Box
-                Box(
+                // Promo Code Box with Copy
+                Row(
                     modifier = Modifier
                         .border(
                             1.dp,
@@ -197,7 +225,9 @@ fun OfferCard(
                             MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
                             RoundedCornerShape(Dimens.radiusSmall)
                         )
-                        .padding(horizontal = Dimens.space12, vertical = Dimens.space6)
+                        .clickable(onClick = onCopyCode)
+                        .padding(horizontal = Dimens.space8, vertical = Dimens.space4),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
                         text = offer.code,
@@ -206,6 +236,13 @@ fun OfferCard(
                             letterSpacing = 1.2.sp,
                         ),
                         color = MaterialTheme.colorScheme.primary,
+                    )
+                    Spacer(modifier = Modifier.width(Dimens.space4))
+                    Icon(
+                        imageVector = Icons.Default.ContentCopy,
+                        contentDescription = "Copy code",
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(14.dp)
                     )
                 }
 
@@ -262,9 +299,27 @@ fun OfferCard(
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.End,
+                horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.clickable(onClick = onClick)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Info,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(14.dp)
+                    )
+                    Spacer(modifier = Modifier.width(Dimens.space4))
+                    Text(
+                        text = "View details",
+                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Medium),
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+
                 if (isApplied) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -278,7 +333,7 @@ fun OfferCard(
                         )
                         Spacer(modifier = Modifier.width(Dimens.space4))
                         Text(
-                            text = "Applied to Cart",
+                            text = "Applied",
                             style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
                             color = StatusSuccess,
                         )

@@ -23,10 +23,11 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.filled.Remove
+import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.ShoppingCart
-import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -55,6 +56,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.cafeapp.core.network.dto.MenuItemDto
+import com.cafeapp.core.ui.components.CafeAsyncImage
 import com.cafeapp.core.ui.components.CafeEmptyState
 import com.cafeapp.core.ui.components.CafeErrorState
 import com.cafeapp.core.ui.components.CafeLoadingIndicator
@@ -229,7 +231,7 @@ fun CustomerMenuScreen(
                                 // Category "All"
                                 SuggestionChip(
                                     onClick = { viewModel.selectCategory(null) },
-                                    label = { Text("All Items", fontSize = 12.sp) },
+                                    label = { Text("All (${uiState.allItems.size})", fontSize = 12.sp) },
                                     colors = SuggestionChipDefaults.suggestionChipColors(
                                         containerColor = if (uiState.selectedCategoryId == null)
                                             MaterialTheme.colorScheme.primaryContainer
@@ -245,9 +247,10 @@ fun CustomerMenuScreen(
                                 // Other Categories
                                 uiState.categories.forEach { category ->
                                     val isSelected = uiState.selectedCategoryId == category.id
+                                    val count = uiState.allItems.count { it.categoryId == category.id }
                                     SuggestionChip(
                                         onClick = { viewModel.selectCategory(category.id) },
-                                        label = { Text(category.name, fontSize = 12.sp) },
+                                        label = { Text("${category.name} ($count)", fontSize = 12.sp) },
                                         colors = SuggestionChipDefaults.suggestionChipColors(
                                             containerColor = if (isSelected)
                                                 MaterialTheme.colorScheme.primaryContainer
@@ -276,7 +279,7 @@ fun CustomerMenuScreen(
                                     start = Dimens.space16,
                                     end = Dimens.space16,
                                     top = Dimens.space8,
-                                    bottom = if (cartState.totalItemCount > 0) 80.dp else Dimens.space16,
+                                    bottom = if (cartState.totalItemCount > 0) 90.dp else Dimens.space16,
                                 ),
                                 verticalArrangement = Arrangement.spacedBy(Dimens.space12),
                             ) {
@@ -290,6 +293,7 @@ fun CustomerMenuScreen(
                                     MenuItemCard(
                                         item = menuItem,
                                         quantity = quantity,
+                                        onClick = { viewModel.showItemDetails(menuItem) },
                                         onAdd = { viewModel.addToCart(menuItem) },
                                         onRemove = { viewModel.decrementCartItem(menuItem.id) }
                                     )
@@ -299,6 +303,20 @@ fun CustomerMenuScreen(
                     }
                 }
             }
+
+            // Item Details Bottom Sheet
+            uiState.selectedItemForDetails?.let { item ->
+                val itemInCart = cartState.items.find { it.menuItemId == item.id }
+                val quantity = itemInCart?.quantity ?: 0
+
+                MenuItemDetailBottomSheet(
+                    item = item,
+                    quantityInCart = quantity,
+                    onDismiss = { viewModel.dismissItemDetails() },
+                    onAddToCart = { viewModel.addToCart(item) },
+                    onDecrement = { viewModel.decrementCartItem(item.id) }
+                )
+            }
         }
     }
 }
@@ -307,12 +325,15 @@ fun CustomerMenuScreen(
 fun MenuItemCard(
     item: MenuItemDto,
     quantity: Int,
+    onClick: () -> Unit,
     onAdd: () -> Unit,
     onRemove: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     ElevatedCard(
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
         shape = RoundedCornerShape(Dimens.radiusMedium),
         colors = CardDefaults.elevatedCardColors(
             containerColor = MaterialTheme.colorScheme.surface,
@@ -322,14 +343,26 @@ fun MenuItemCard(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(Dimens.space16),
+                .padding(Dimens.space12),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
+            // Thumbnail Image
+            CafeAsyncImage(
+                imageUrl = item.imageUrl,
+                contentDescription = item.name,
+                modifier = Modifier
+                    .size(80.dp)
+                    .clip(RoundedCornerShape(Dimens.radiusMedium))
+            )
+
+            Spacer(modifier = Modifier.width(Dimens.space12))
+
+            // Details Column
             Column(modifier = Modifier.weight(1f)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     VegIndicator(isVeg = item.isVeg ?: true)
-                    Spacer(modifier = Modifier.width(Dimens.space8))
+                    Spacer(modifier = Modifier.width(Dimens.space6))
                     Text(
                         text = item.name,
                         style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
@@ -337,11 +370,20 @@ fun MenuItemCard(
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
+                    if (item.isSpicy) {
+                        Spacer(modifier = Modifier.width(Dimens.space4))
+                        Icon(
+                            imageVector = Icons.Default.LocalFireDepartment,
+                            contentDescription = "Spicy",
+                            tint = Color(0xFFD32F2F),
+                            modifier = Modifier.size(14.dp)
+                        )
+                    }
                 }
 
                 val itemDesc = item.description
                 if (!itemDesc.isNullOrBlank()) {
-                    Spacer(modifier = Modifier.height(Dimens.space4))
+                    Spacer(modifier = Modifier.height(Dimens.space2))
                     Text(
                         text = itemDesc,
                         style = MaterialTheme.typography.bodySmall,
@@ -351,15 +393,36 @@ fun MenuItemCard(
                     )
                 }
 
-                Spacer(modifier = Modifier.height(Dimens.space8))
-                Text(
-                    text = formatPricePaise(item.pricePaise),
-                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                    color = MaterialTheme.colorScheme.primary,
-                )
+                Spacer(modifier = Modifier.height(Dimens.space6))
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(Dimens.space8)
+                ) {
+                    Text(
+                        text = formatPricePaise(item.pricePaise),
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.Default.Schedule,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                            modifier = Modifier.size(11.dp)
+                        )
+                        Spacer(modifier = Modifier.width(2.dp))
+                        Text(
+                            text = "${item.preparationTimeMinutes}m",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                            fontSize = 11.sp
+                        )
+                    }
+                }
             }
 
-            Spacer(modifier = Modifier.width(Dimens.space16))
+            Spacer(modifier = Modifier.width(Dimens.space8))
 
             // Action / Quantity Controls
             if (!item.isAvailable) {
@@ -383,7 +446,7 @@ fun MenuItemCard(
                         .clip(RoundedCornerShape(Dimens.radiusSmall))
                         .background(MaterialTheme.colorScheme.primaryContainer)
                         .clickable(onClick = onAdd)
-                        .padding(horizontal = Dimens.space16, vertical = Dimens.space8),
+                        .padding(horizontal = Dimens.space12, vertical = Dimens.space6),
                     contentAlignment = Alignment.Center,
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -391,9 +454,9 @@ fun MenuItemCard(
                             imageVector = Icons.Default.Add,
                             contentDescription = "Add",
                             tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                            modifier = Modifier.size(16.dp),
+                            modifier = Modifier.size(14.dp),
                         )
-                        Spacer(modifier = Modifier.width(Dimens.space4))
+                        Spacer(modifier = Modifier.width(Dimens.space2))
                         Text(
                             text = "Add",
                             style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
@@ -407,36 +470,36 @@ fun MenuItemCard(
                     modifier = Modifier
                         .clip(RoundedCornerShape(Dimens.radiusSmall))
                         .background(MaterialTheme.colorScheme.primaryContainer)
-                        .padding(horizontal = Dimens.space4, vertical = Dimens.space2),
+                        .padding(horizontal = Dimens.space2, vertical = Dimens.space2),
                 ) {
                     IconButton(
                         onClick = onRemove,
-                        modifier = Modifier.size(28.dp),
+                        modifier = Modifier.size(24.dp),
                     ) {
                         Icon(
                             imageVector = Icons.Default.Remove,
                             contentDescription = "Remove",
                             tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                            modifier = Modifier.size(16.dp),
+                            modifier = Modifier.size(14.dp),
                         )
                     }
 
                     Text(
                         text = quantity.toString(),
-                        style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
+                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
                         color = MaterialTheme.colorScheme.onPrimaryContainer,
-                        modifier = Modifier.padding(horizontal = Dimens.space8),
+                        modifier = Modifier.padding(horizontal = Dimens.space4),
                     )
 
                     IconButton(
                         onClick = onAdd,
-                        modifier = Modifier.size(28.dp),
+                        modifier = Modifier.size(24.dp),
                     ) {
                         Icon(
                             imageVector = Icons.Default.Add,
                             contentDescription = "Add",
                             tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                            modifier = Modifier.size(16.dp),
+                            modifier = Modifier.size(14.dp),
                         )
                     }
                 }

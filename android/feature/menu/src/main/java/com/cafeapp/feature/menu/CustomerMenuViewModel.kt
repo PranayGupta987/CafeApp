@@ -22,6 +22,7 @@ data class MenuUiState(
     val allItems: List<MenuItemDto> = emptyList(),
     val searchQuery: String = "",
     val isVegOnly: Boolean = false,
+    val selectedItemForDetails: MenuItemDto? = null,
     val errorMessage: String? = null,
 ) {
     val filteredItems: List<MenuItemDto>
@@ -89,6 +90,14 @@ class CustomerMenuViewModel @Inject constructor(
 
     fun toggleVegOnly() {
         _uiState.update { it.copy(isVegOnly = !it.isVegOnly) }
+    }
+
+    fun showItemDetails(item: MenuItemDto) {
+        _uiState.update { it.copy(selectedItemForDetails = item) }
+    }
+
+    fun dismissItemDetails() {
+        _uiState.update { it.copy(selectedItemForDetails = null) }
     }
 
     fun addToCart(item: MenuItemDto) {

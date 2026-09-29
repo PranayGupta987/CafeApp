@@ -18,6 +18,7 @@ import javax.inject.Inject
 data class OffersUiState(
     val isLoading: Boolean = false,
     val offers: List<OfferDto> = emptyList(),
+    val selectedOfferForDetails: OfferDto? = null,
     val errorMessage: String? = null,
     val userNotification: String? = null,
 )
@@ -58,6 +59,20 @@ class CustomerOffersViewModel @Inject constructor(
                     )
                 }
             }
+        }
+    }
+
+    fun showOfferDetails(offer: OfferDto) {
+        _uiState.update { it.copy(selectedOfferForDetails = offer) }
+    }
+
+    fun dismissOfferDetails() {
+        _uiState.update { it.copy(selectedOfferForDetails = null) }
+    }
+
+    fun onCodeCopied(code: String) {
+        _uiState.update {
+            it.copy(userNotification = "Code '$code' copied to clipboard!")
         }
     }
 
