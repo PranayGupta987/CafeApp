@@ -14,5 +14,15 @@ export const updateReservationStatusSchema = z.object({
   tableId: z.string().uuid().optional().nullable(),
 });
 
+export const checkAvailabilitySchema = z.object({
+  date: z.string().optional(), // YYYY-MM-DD
+  time: z.string().optional(), // HH:mm
+  reservationTime: z.string().optional(), // ISO-8601
+  partySize: z.coerce.number().int().min(1).max(20).optional().default(2),
+  durationMinutes: z.coerce.number().int().min(30).max(240).optional().default(90),
+});
+
 export type CreateReservationInput = z.infer<typeof createReservationSchema>;
 export type UpdateReservationStatusInput = z.infer<typeof updateReservationStatusSchema>;
+export type CheckAvailabilityQuery = z.infer<typeof checkAvailabilitySchema>;
+

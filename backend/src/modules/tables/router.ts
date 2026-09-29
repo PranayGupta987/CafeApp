@@ -1,13 +1,27 @@
 import { Router } from 'express';
 import { TablesService } from './service.js';
+import { ReservationsService } from '../reservations/service.js';
+import { checkAvailabilitySchema } from '../reservations/types.js';
 import { createTableSchema, updateTableSchema, updateTableStatusSchema } from './types.js';
 import { requireAuth, requireRoles } from '../../middleware/auth.js';
 import { UserRole } from '@prisma/client';
 
 const router = Router();
 
+// Public / Authenticated: Table availability
+router.get('/availability', async (req, res, next) => {
+  try {
+    const query = checkAvailabilitySchema.parse(req.query);
+    const availability = await ReservationsService.getAvailability(query);
+    res.json({ success: true, data: availability });
+  } catch (err) {
+    next(err);
+  }
+});
+
 // Public: Get all tables
 router.get('/', async (req, res, next) => {
+
   try {
     const includeInactive = req.query.includeInactive === 'true';
     const tables = await TablesService.getAllTables(includeInactive);

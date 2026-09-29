@@ -1,10 +1,21 @@
 import { Router } from 'express';
 import { ReservationsService } from './service.js';
-import { createReservationSchema, updateReservationStatusSchema } from './types.js';
+import { checkAvailabilitySchema, createReservationSchema, updateReservationStatusSchema } from './types.js';
 import { requireAuth } from '../../middleware/auth.js';
 import { ReservationStatus } from '@prisma/client';
 
 const router = Router();
+
+// Check Table Availability (Public / Authenticated)
+router.get('/availability', async (req, res, next) => {
+  try {
+    const query = checkAvailabilitySchema.parse(req.query);
+    const availability = await ReservationsService.getAvailability(query);
+    res.json({ success: true, data: availability });
+  } catch (err) {
+    next(err);
+  }
+});
 
 // Authenticated: Get reservations (Users get their own; Staff/Admin get all)
 router.get('/', requireAuth, async (req, res, next) => {
@@ -38,6 +49,25 @@ router.post('/', requireAuth, async (req, res, next) => {
   }
 });
 
+// Authenticated: Cancel reservation via PUT/PATCH /:id/cancel
+router.put('/:id/cancel', requireAuth, async (req, res, next) => {
+  try {
+    const reservation = await ReservationsService.cancelReservation(req.params.id, req.user!);
+    res.json({ success: true, message: 'Reservation cancelled successfully', data: reservation });
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.patch('/:id/cancel', requireAuth, async (req, res, next) => {
+  try {
+    const reservation = await ReservationsService.cancelReservation(req.params.id, req.user!);
+    res.json({ success: true, message: 'Reservation cancelled successfully', data: reservation });
+  } catch (err) {
+    next(err);
+  }
+});
+
 // Authenticated: Update reservation status / assign table
 router.put('/:id/status', requireAuth, async (req, res, next) => {
   try {
@@ -53,7 +83,7 @@ router.put('/:id/status', requireAuth, async (req, res, next) => {
   }
 });
 
-// Authenticated: Cancel reservation
+// Authenticated: Cancel reservation via DELETE
 router.delete('/:id', requireAuth, async (req, res, next) => {
   try {
     const reservation = await ReservationsService.cancelReservation(req.params.id, req.user!);
@@ -64,3 +94,4 @@ router.delete('/:id', requireAuth, async (req, res, next) => {
 });
 
 export default router;
+
