@@ -11,42 +11,56 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 
-private val CafeBrown = Color(0xFF6F4E37)
-private val CafeCream = Color(0xFFF5F0E8)
-private val CafeGold = Color(0xFFC89B3C)
-
 private val LightColorScheme = lightColorScheme(
     primary = CafeBrown,
     onPrimary = Color.White,
-    primaryContainer = Color(0xFFD7C4A8),
-    onPrimaryContainer = Color(0xFF2D1E0F),
+    primaryContainer = CafeCreamDark,
+    onPrimaryContainer = CafeBrownDark,
     secondary = CafeGold,
     onSecondary = Color.White,
-    background = CafeCream,
-    onBackground = Color(0xFF1C1B1F),
+    secondaryContainer = Color(0xFFF7ECCF),
+    onSecondaryContainer = CafeGoldDark,
+    background = CafeCreamLight,
+    onBackground = NeutralDark,
     surface = Color.White,
-    onSurface = Color(0xFF1C1B1F),
-    surfaceVariant = Color(0xFFF0E6D6),
-    onSurfaceVariant = Color(0xFF4A4458),
+    onSurface = NeutralDark,
+    surfaceVariant = CafeCream,
+    onSurfaceVariant = NeutralMedium,
+    error = StatusError,
+    onError = Color.White,
+    errorContainer = StatusErrorContainer,
+    onErrorContainer = StatusError,
+    outline = NeutralVariant,
+    outlineVariant = NeutralBorder,
 )
 
 private val DarkColorScheme = darkColorScheme(
-    primary = Color(0xFFD7C4A8),
-    onPrimary = Color(0xFF2D1E0F),
+    primary = CafeGoldLight,
+    onPrimary = CafeBrownDark,
     primaryContainer = CafeBrown,
-    onPrimaryContainer = Color(0xFFF5F0E8),
+    onPrimaryContainer = CafeCream,
     secondary = CafeGold,
     onSecondary = Color.Black,
-    background = Color(0xFF1C1B1F),
-    onBackground = Color(0xFFE6E1E5),
-    surface = Color(0xFF2B2930),
-    onSurface = Color(0xFFE6E1E5),
+    secondaryContainer = CafeGoldDark,
+    onSecondaryContainer = CafeCream,
+    background = Color(0xFF141210),
+    onBackground = Color(0xFFECE0D6),
+    surface = Color(0xFF1E1B18),
+    onSurface = Color(0xFFECE0D6),
+    surfaceVariant = Color(0xFF2C2723),
+    onSurfaceVariant = Color(0xFFD0C3B7),
+    error = Color(0xFFFFB4AB),
+    onError = Color(0xFF690005),
+    errorContainer = Color(0xFF93000A),
+    onErrorContainer = Color(0xFFFFDAD6),
+    outline = Color(0xFF988E85),
+    outlineVariant = Color(0xFF4C453E),
 )
 
 @Composable
 fun CafeAppTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    dynamicColor: Boolean = true,
+    dynamicColor: Boolean = false, // Default to custom cafe branding colors
     content: @Composable () -> Unit,
 ) {
     val colorScheme = when {
@@ -60,6 +74,8 @@ fun CafeAppTheme(
 
     MaterialTheme(
         colorScheme = colorScheme,
+        typography = CafeTypography,
+        shapes = CafeShapes,
         content = content,
     )
 }

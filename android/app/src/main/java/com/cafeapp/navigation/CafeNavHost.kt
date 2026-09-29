@@ -7,6 +7,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.cafeapp.navigation.placeholder.CafeHomePlaceholder
 import com.cafeapp.navigation.placeholder.CustomerHomePlaceholder
+import com.cafeapp.navigation.placeholder.DevelopmentFoundationScreen
 import com.cafeapp.navigation.placeholder.KitchenHomePlaceholder
 import com.cafeapp.navigation.placeholder.SplashScreen
 
@@ -42,6 +43,13 @@ fun CafeNavHost(
                 },
             )
         }
+        composable("dev/foundation") {
+            DevelopmentFoundationScreen(
+                onNavigateToAuth = {
+                    navController.navigate("auth/login")
+                },
+            )
+        }
         composable("auth/login") {
             com.cafeapp.feature.auth.ui.LoginScreen(
                 onLoginSuccess = { role ->
@@ -70,7 +78,7 @@ fun CafeNavHost(
             )
         }
         composable("customer/home") {
-            CustomerHomePlaceholder(
+            CustomerMainScreen(
                 onLogout = {
                     navController.navigate("auth/login") {
                         popUpTo(0) { inclusive = true }

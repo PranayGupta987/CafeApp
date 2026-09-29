@@ -1,8 +1,10 @@
 import 'dotenv/config';
+import http from 'http';
 import { PrismaClient } from '@prisma/client';
 import { createApp } from './app.js';
 import { getEnv } from './config/env.js';
 import { logger } from './lib/logger.js';
+import { initSocketServer } from './websocket/index.js';
 
 async function main() {
   const env = getEnv();
@@ -12,15 +14,23 @@ async function main() {
     await prisma.$connect();
     logger.info('Connected to database');
   } catch (err) {
-    logger.fatal(err, 'Failed to connect to database');
-    process.exit(1);
+    if (env.NODE_ENV === 'development') {
+      logger.error(err, 'Failed to connect to database, but continuing in development mode');
+    } else {
+      logger.fatal(err, 'Failed to connect to database');
+      process.exit(1);
+    }
   }
 
   const app = createApp(prisma);
+  const server = http.createServer(app);
 
-  const server = app.listen(env.PORT, () => {
-    logger.info(`API server running on port ${env.PORT}`);
-    logger.info(`Health check: http://localhost:${env.PORT}/api/v1/health`);
+  // Initialize Socket.IO
+  initSocketServer(server);
+
+  server.listen(env.PORT, () => {
+    logger.info(`API & WebSocket server running on port ${env.PORT}`);
+    logger.info(`Health check: http://localhost:${env.PORT}/health or /api/v1/health`);
   });
 
   // Graceful shutdown

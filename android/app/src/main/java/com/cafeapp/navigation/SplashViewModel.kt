@@ -23,7 +23,7 @@ class SplashViewModel @Inject constructor(
         data object Kitchen : Destination
     }
 
-    private val _destination = MutableSharedFlow<Destination>(replay = 0)
+    private val _destination = MutableSharedFlow<Destination>(replay = 1)
     val destination: SharedFlow<Destination> = _destination
 
     init {

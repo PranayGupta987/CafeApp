@@ -1,11 +1,12 @@
 package com.cafeapp.core.database
 
 import androidx.room.Database
+import androidx.room.Entity
+import androidx.room.PrimaryKey
 import androidx.room.RoomDatabase
 
-/**
- * Room database for local menu/session cache.
- * Entities will be added in Phase 2+.
- */
-@Database(entities = [], version = 1, exportSchema = false)
+@Entity(tableName = "dummy_table")
+data class DummyEntity(@PrimaryKey val id: Int = 0)
+
+@Database(entities = [DummyEntity::class], version = 1, exportSchema = false)
 abstract class CafeDatabase : RoomDatabase()

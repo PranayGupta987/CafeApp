@@ -13,6 +13,9 @@
     "lint": "eslint . --ext .ts",
     "health": "node -e \"fetch('http://localhost:3000/api/v1/health').then(r=>r.json()).then(j=>console.log(JSON.stringify(j)))\""
   },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
+  },
   "dependencies": {
     "@prisma/client": "^6.0.0",
     "argon2": "^0.41.1",

@@ -1,5 +1,4 @@
-// Prisma schema for CafeApp - Phase 0 foundation
-// Full schema will be built across phases
+// Prisma schema for CafeApp - Comprehensive Phase 3 Database Schema
 
 generator client {
   provider = "prisma-client-js"
@@ -12,9 +11,54 @@ datasource db {
 
 enum UserRole {
   CUSTOMER
-  CAFE_ADMIN
   CAFE_STAFF
   KITCHEN
+  CAFE_ADMIN
+}
+
+enum TableStatus {
+  AVAILABLE
+  OCCUPIED
+  RESERVED
+  OUT_OF_SERVICE
+}
+
+enum TableSessionStatus {
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+enum ReservationStatus {
+  PENDING
+  CONFIRMED
+  SEATED
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+  REJECTED
+}
+
+enum OrderStatus {
+  PLACED
+  ACCEPTED
+  PREPARING
+  READY
+  SERVED
+  COMPLETED
+  CANCELLED
+}
+
+enum DiscountType {
+  PERCENTAGE
+  FLAT_AMOUNT
+}
+
+enum NotificationType {
+  ORDER_STATUS
+  RESERVATION_STATUS
+  PROMOTIONAL
+  SYSTEM
 }
 
 model User {
@@ -23,23 +67,30 @@ model User {
   passwordHash  String
   name          String
   phone         String?        @unique @db.Citext
-  role          UserRole
+  role          UserRole       @default(CUSTOMER)
   isActive      Boolean        @default(true)
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
+
+  refreshTokens  RefreshToken[]
+  reservations   Reservation[]
+  tableSessions  TableSession[]
+  orders         Order[]
+  statusChanges  OrderStatusHistory[]
+  notifications  Notification[]
 
   @@index([role])
   @@index([isActive])
 }
 
 model RefreshToken {
-  id          String   @id @default(uuid()) @db.Uuid
-  userId      String   @db.Uuid
-  tokenHash   String   @unique
-  expiresAt   DateTime
-  revokedAt   DateTime?
-  replacedById String?  @db.Uuid
-  createdAt   DateTime @default(now())
+  id           String    @id @default(uuid()) @db.Uuid
+  userId       String    @db.Uuid
+  tokenHash    String    @unique
+  expiresAt    DateTime
+  revokedAt    DateTime?
+  replacedById String?   @db.Uuid
+  createdAt    DateTime  @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -48,21 +99,220 @@ model RefreshToken {
 }
 
 model CafeProfile {
-  id                 String   @id @default("00000000-0000-4000-8000-000000000001") @db.Uuid
-  name               String
-  address            String
-  phone              String
-  email              String
-  gstin              String?
-  gstPercent         Decimal  @db.Decimal(5, 2) @default(5.00)
-  currency           String   @default("INR")
-  timezone           String   @default("Asia/Kolkata")
-  logoUrl            String?
-  openingTime        String   // "08:00"
-  closingTime        String   // "22:00"
-  isAcceptingOrders  Boolean  @default(true)
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
+  id                String   @id @default("00000000-0000-4000-8000-000000000001") @db.Uuid
+  name              String
+  description       String?
+  address           String
+  phone             String
+  email             String
+  gstin             String?
+  gstPercent        Decimal  @default(5.00) @db.Decimal(5, 2)
+  currency          String   @default("INR")
+  timezone          String   @default("Asia/Kolkata")
+  logoUrl           String?
+  openingTime       String   // "08:00"
+  closingTime       String   // "23:00"
+  isAcceptingOrders Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 
   @@index([isAcceptingOrders])
+}
+
+model Table {
+  id          String      @id @default(uuid()) @db.Uuid
+  tableNumber Int         @unique
+  capacity    Int
+  qrToken     String      @unique @db.VarChar(64)
+  status      TableStatus @default(AVAILABLE)
+  isActive    Boolean     @default(true)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  tableSessions TableSession[]
+  reservations  Reservation[]
+  orders        Order[]
+
+  @@index([status])
+  @@index([isActive])
+  @@index([qrToken])
+}
+
+model MenuCategory {
+  id           String     @id @default(uuid()) @db.Uuid
+  name         String     @unique
+  description  String?
+  displayOrder Int        @default(0)
+  isActive     Boolean    @default(true)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  menuItems MenuItem[]
+
+  @@index([displayOrder])
+  @@index([isActive])
+}
+
+model MenuItem {
+  id                     String       @id @default(uuid()) @db.Uuid
+  categoryId             String       @db.Uuid
+  name                   String
+  description            String?
+  pricePaise             Int          // Integer paise (e.g. ₹250.00 = 25000)
+  preparationTimeMinutes Int          @default(15)
+  isAvailable            Boolean      @default(true)
+  isVeg                  Boolean      @default(true)
+  isSpicy                Boolean      @default(false)
+  imageUrl               String?
+  displayOrder           Int          @default(0)
+  createdAt              DateTime     @default(now())
+  updatedAt              DateTime     @updatedAt
+
+  category   MenuCategory @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  orderItems OrderItem[]
+
+  @@index([categoryId])
+  @@index([isAvailable])
+  @@index([isVeg])
+  @@index([displayOrder])
+}
+
+model Offer {
+  id                    String       @id @default(uuid()) @db.Uuid
+  code                  String       @unique
+  title                 String?
+  description           String
+  discountType          DiscountType
+  discountValue         Int          // percentage points or flat amount in paise
+  minOrderAmountPaise   Int          @default(0)
+  maxDiscountAmountPaise Int?
+  validFrom             DateTime
+  validTo               DateTime
+  isActive              Boolean      @default(true)
+  createdAt             DateTime     @default(now())
+  updatedAt             DateTime     @updatedAt
+
+  @@index([code])
+  @@index([isActive])
+  @@index([validFrom, validTo])
+}
+
+model Reservation {
+  id              String            @id @default(uuid()) @db.Uuid
+  userId          String            @db.Uuid
+  tableId         String?           @db.Uuid
+  partySize       Int
+  reservationTime DateTime
+  durationMinutes Int               @default(90)
+  status          ReservationStatus @default(PENDING)
+  specialRequests String?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  user  User   @relation(fields: [userId], references: [id], onDelete: Restrict)
+  table Table? @relation(fields: [tableId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([tableId])
+  @@index([reservationTime])
+  @@index([status])
+}
+
+model TableSession {
+  id               String             @id @default(uuid()) @db.Uuid
+  tableId          String             @db.Uuid
+  hostUserId       String             @db.Uuid
+  guestCount       Int                @default(1)
+  status           TableSessionStatus @default(ACTIVE)
+  checkedInAt      DateTime           @default(now())
+  checkedOutAt     DateTime?
+  totalAmountPaise Int                @default(0)
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+
+  table    Table   @relation(fields: [tableId], references: [id], onDelete: Restrict)
+  hostUser User    @relation(fields: [hostUserId], references: [id], onDelete: Restrict)
+  orders   Order[]
+
+  @@index([tableId])
+  @@index([hostUserId])
+  @@index([status])
+}
+
+model Order {
+  id                  String      @id @default(uuid()) @db.Uuid
+  orderNumber         Int         @unique
+  sessionId           String      @db.Uuid
+  userId              String      @db.Uuid
+  tableId             String      @db.Uuid
+  status              OrderStatus @default(PLACED)
+  subtotalPaise       Int
+  discountPaise       Int         @default(0)
+  taxPaise            Int         @default(0)
+  totalPaise          Int
+  specialInstructions String?
+  createdAt           DateTime    @default(now())
+  updatedAt           DateTime    @updatedAt
+
+  session       TableSession         @relation(fields: [sessionId], references: [id], onDelete: Restrict)
+  user          User                 @relation(fields: [userId], references: [id], onDelete: Restrict)
+  table         Table                @relation(fields: [tableId], references: [id], onDelete: Restrict)
+  items         OrderItem[]
+  statusHistory OrderStatusHistory[]
+
+  @@index([sessionId])
+  @@index([userId])
+  @@index([tableId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model OrderItem {
+  id             String   @id @default(uuid()) @db.Uuid
+  orderId        String   @db.Uuid
+  menuItemId     String   @db.Uuid
+  quantity       Int      @default(1)
+  unitPricePaise Int      // Snapshot of price at time of ordering in paise
+  subtotalPaise  Int      // quantity * unitPricePaise
+  notes          String?
+  createdAt      DateTime @default(now())
+
+  order    Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  menuItem MenuItem @relation(fields: [menuItemId], references: [id], onDelete: Restrict)
+
+  @@index([orderId])
+  @@index([menuItemId])
+}
+
+model OrderStatusHistory {
+  id              String      @id @default(uuid()) @db.Uuid
+  orderId         String      @db.Uuid
+  status          OrderStatus
+  changedByUserId String?     @db.Uuid
+  notes           String?
+  createdAt       DateTime    @default(now())
+
+  order         Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  changedByUser User? @relation(fields: [changedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([orderId])
+  @@index([changedByUserId])
+  @@index([status])
+}
+
+model Notification {
+  id        String           @id @default(uuid()) @db.Uuid
+  userId    String           @db.Uuid
+  type      NotificationType
+  title     String
+  message   String
+  isRead    Boolean          @default(false)
+  data      Json?
+  createdAt DateTime         @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([isRead])
+  @@index([createdAt])
 }

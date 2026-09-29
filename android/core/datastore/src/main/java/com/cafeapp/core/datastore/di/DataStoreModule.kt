@@ -17,6 +17,9 @@ object DataStoreModule {
     fun provideTokenProvider(prefs: SessionPreferences): TokenProvider {
         return object : TokenProvider {
             override fun getAccessToken(): String? = prefs.getAccessTokenBlocking()
+            override fun getRefreshToken(): String? = prefs.getRefreshTokenBlocking()
+            override fun saveTokens(accessToken: String, refreshToken: String) = prefs.saveTokensBlocking(accessToken, refreshToken)
+            override fun clearTokens() = prefs.clearTokensBlocking()
         }
     }
 }

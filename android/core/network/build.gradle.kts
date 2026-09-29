@@ -31,6 +31,8 @@ dependencies {
     api(libs.okhttp)
     implementation(libs.okhttp.logging)
     implementation(libs.okio)
+    implementation(libs.moshi.kotlin)
+    ksp(libs.moshi.codegen)
 
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
