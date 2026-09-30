@@ -96,7 +96,7 @@ fun CafeNavHost(
             )
         }
         composable("kitchen/home") {
-            KitchenHomePlaceholder(
+            com.cafeapp.feature.kitchen.KitchenScreen(
                 onLogout = {
                     navController.navigate("auth/login") {
                         popUpTo(0) { inclusive = true }

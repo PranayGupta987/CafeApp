@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.cafeapp.core.network.OrdersApi
 import com.cafeapp.core.network.dto.OrderDto
+import com.cafeapp.core.realtime.SocketManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -22,6 +23,7 @@ data class CustomerOrdersUiState(
 @HiltViewModel
 class CustomerOrdersViewModel @Inject constructor(
     private val ordersApi: OrdersApi,
+    private val socketManager: SocketManager,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(CustomerOrdersUiState(isLoading = true))
@@ -29,11 +31,42 @@ class CustomerOrdersViewModel @Inject constructor(
 
     init {
         loadOrders()
+        initRealtime()
     }
 
-    fun loadOrders() {
+    private fun initRealtime() {
+        socketManager.connect()
+
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, errorMessage = null) }
+            socketManager.orderStatusUpdates.collect { update ->
+                // Update local order status immediately and trigger refresh
+                _uiState.update { current ->
+                    val updatedList = current.orders.map { order ->
+                        if (order.id == update.orderId) {
+                            order.copy(status = update.status)
+                        } else {
+                            order
+                        }
+                    }
+                    current.copy(orders = updatedList)
+                }
+                // Also fetch authoritative fresh data
+                loadOrders(silent = true)
+            }
+        }
+
+        viewModelScope.launch {
+            socketManager.orderNewEvents.collect {
+                loadOrders(silent = true)
+            }
+        }
+    }
+
+    fun loadOrders(silent: Boolean = false) {
+        viewModelScope.launch {
+            if (!silent) {
+                _uiState.update { it.copy(isLoading = true, errorMessage = null) }
+            }
             try {
                 val response = ordersApi.getOrders()
                 val orders = response.data ?: emptyList()
@@ -45,11 +78,13 @@ class CustomerOrdersViewModel @Inject constructor(
                     )
                 }
             } catch (e: Exception) {
-                _uiState.update {
-                    it.copy(
-                        isLoading = false,
-                        errorMessage = e.localizedMessage ?: "Failed to load orders"
-                    )
+                if (!silent) {
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            errorMessage = e.localizedMessage ?: "Failed to load orders"
+                        )
+                    }
                 }
             }
         }

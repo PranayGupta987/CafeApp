@@ -20,6 +20,12 @@ data class PlaceOrderRequest(
 )
 
 @JsonClass(generateAdapter = true)
+data class UpdateOrderStatusRequest(
+    @Json(name = "status") val status: String,
+    @Json(name = "notes") val notes: String? = null,
+)
+
+@JsonClass(generateAdapter = true)
 data class OrderItemMenuItemDto(
     @Json(name = "id") val id: String,
     @Json(name = "name") val name: String,

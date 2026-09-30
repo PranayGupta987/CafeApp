@@ -33,6 +33,7 @@ dependencies {
     ksp(libs.hilt.compiler)
 
     implementation(project(":core:common"))
+    implementation(project(":core:datastore"))
 
     testImplementation(libs.junit)
 }
