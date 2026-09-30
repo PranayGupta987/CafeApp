@@ -2,7 +2,6 @@ import { prisma } from "../../lib/prisma.js";
 import argon2 from "argon2";
 import bcrypt from "bcrypt";
 import crypto from "crypto";
-import { getEnv } from "../../config/env.js";
 
 const ACCESS_SECRET = process.env.JWT_ACCESS_SECRET || "cafeapp-default-access-secret-32-chars-long";
 const REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || "cafeapp-default-refresh-secret-32-chars-long";
