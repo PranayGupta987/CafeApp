@@ -5,6 +5,7 @@ import { createApp } from './app.js';
 import { getEnv } from './config/env.js';
 import { logger } from './lib/logger.js';
 import { initSocketServer } from './websocket/index.js';
+import { seedDatabase } from './lib/seed.js';
 
 async function main() {
   const env = getEnv();
@@ -13,6 +14,26 @@ async function main() {
   try {
     await prisma.$connect();
     logger.info('Connected to database');
+
+    // Ensure citext extension is enabled on PostgreSQL
+    try {
+      await prisma.$executeRawUnsafe('CREATE EXTENSION IF NOT EXISTS citext;');
+      logger.info('PostgreSQL citext extension verified');
+    } catch (extErr) {
+      logger.warn({ err: extErr }, 'Could not run CREATE EXTENSION citext (may already exist or need superuser)');
+    }
+
+    // Auto-seed if database is fresh
+    try {
+      const cafeCount = await prisma.cafeProfile.count();
+      if (cafeCount === 0) {
+        logger.info('Fresh database detected. Seeding initial cafe profile, users, menu and tables...');
+        await seedDatabase(prisma);
+        logger.info('Database seeding completed successfully');
+      }
+    } catch (seedErr) {
+      logger.warn({ err: seedErr }, 'Database check or auto-seeding skipped');
+    }
   } catch (err) {
     if (env.NODE_ENV === 'development') {
       logger.error(err, 'Failed to connect to database, but continuing in development mode');

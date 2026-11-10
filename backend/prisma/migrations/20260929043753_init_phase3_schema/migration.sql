@@ -1,3 +1,6 @@
+-- Enable citext extension
+CREATE EXTENSION IF NOT EXISTS citext;
+
 -- CreateEnum
 CREATE TYPE "UserRole" AS ENUM ('CUSTOMER', 'CAFE_STAFF', 'KITCHEN', 'CAFE_ADMIN');
 
