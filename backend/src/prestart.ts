@@ -17,8 +17,7 @@ async function main() {
       await prisma.$executeRawUnsafe('CREATE SCHEMA public;');
       await prisma.$executeRawUnsafe('GRANT ALL ON SCHEMA public TO cafe;');
       await prisma.$executeRawUnsafe('GRANT ALL ON SCHEMA public TO public;');
-      await prisma.$executeRawUnsafe('CREATE EXTENSION IF NOT EXISTS citext;');
-      console.log('✅ Clean public schema prepared with citext extension');
+      console.log('✅ Clean public schema prepared');
     } else {
       // If schema exists, clean up any failed migration locks if any
       try {

@@ -1,6 +1,3 @@
--- Enable citext extension
-CREATE EXTENSION IF NOT EXISTS citext;
-
 -- CreateEnum
 CREATE TYPE "UserRole" AS ENUM ('CUSTOMER', 'CAFE_STAFF', 'KITCHEN', 'CAFE_ADMIN');
 
@@ -25,10 +22,10 @@ CREATE TYPE "NotificationType" AS ENUM ('ORDER_STATUS', 'RESERVATION_STATUS', 'P
 -- CreateTable
 CREATE TABLE "User" (
     "id" UUID NOT NULL,
-    "email" CITEXT NOT NULL,
+    "email" TEXT NOT NULL,
     "passwordHash" TEXT NOT NULL,
     "name" TEXT NOT NULL,
-    "phone" CITEXT,
+    "phone" TEXT,
     "role" "UserRole" NOT NULL DEFAULT 'CUSTOMER',
     "isActive" BOOLEAN NOT NULL DEFAULT true,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,

@@ -15,14 +15,6 @@ async function main() {
     await prisma.$connect();
     logger.info('Connected to database');
 
-    // Ensure citext extension is enabled on PostgreSQL
-    try {
-      await prisma.$executeRawUnsafe('CREATE EXTENSION IF NOT EXISTS citext;');
-      logger.info('PostgreSQL citext extension verified');
-    } catch (extErr) {
-      logger.warn({ err: extErr }, 'Could not run CREATE EXTENSION citext (may already exist or need superuser)');
-    }
-
     // Auto-seed if database is fresh
     try {
       const cafeCount = await prisma.cafeProfile.count();
