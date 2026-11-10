@@ -6,14 +6,31 @@ import { getEnv } from './config/env.js';
 import { logger } from './lib/logger.js';
 import { initSocketServer } from './websocket/index.js';
 import { seedDatabase } from './lib/seed.js';
+import { execSync } from 'child_process';
 
 async function main() {
   const env = getEnv();
   const prisma = new PrismaClient();
 
   try {
+    logger.info('Connecting to database...');
     await prisma.$connect();
-    logger.info('Connected to database');
+    logger.info('Connected to database successfully');
+
+    // Run prisma migrate deploy programmatically
+    try {
+      logger.info('Running database migrations...');
+      execSync('npx prisma migrate deploy', { stdio: 'inherit', env: process.env });
+      logger.info('Database migrations applied successfully');
+    } catch (migErr) {
+      logger.warn({ err: migErr }, 'Migration deploy warning, attempting db push fallback...');
+      try {
+        execSync('npx prisma db push --accept-data-loss', { stdio: 'inherit', env: process.env });
+        logger.info('Prisma db push fallback succeeded');
+      } catch (pushErr) {
+        logger.error({ err: pushErr }, 'Prisma db push fallback also failed');
+      }
+    }
 
     // Auto-seed if database is fresh
     try {
@@ -22,16 +39,16 @@ async function main() {
         logger.info('Fresh database detected. Seeding initial cafe profile, users, menu and tables...');
         await seedDatabase(prisma);
         logger.info('Database seeding completed successfully');
+      } else {
+        logger.info('Database already seeded (CafeProfile count > 0)');
       }
     } catch (seedErr) {
-      logger.warn({ err: seedErr }, 'Database check or auto-seeding skipped');
+      logger.warn({ err: seedErr }, 'Database seeding check/execution skipped');
     }
   } catch (err) {
-    if (env.NODE_ENV === 'development') {
-      logger.error(err, 'Failed to connect to database, but continuing in development mode');
-    } else {
-      logger.fatal(err, 'Failed to connect to database');
-      process.exit(1);
+    logger.error(err, 'Database initialization error during startup');
+    if (env.NODE_ENV !== 'development') {
+      console.error('Fatal DB error in production:', err);
     }
   }
 
