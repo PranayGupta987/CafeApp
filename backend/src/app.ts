@@ -35,8 +35,9 @@ export function createApp(prisma: PrismaClient) {
   // Global Auth Token Extractor
   app.use(authenticateToken);
 
-  // Health
+  // Health & Root
   const healthRouter = createHealthRouter(prisma);
+  app.use('/', healthRouter);
   app.use('/health', healthRouter);
   app.use('/api/v1/health', healthRouter);
 
