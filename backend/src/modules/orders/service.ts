@@ -1,6 +1,6 @@
 import { prisma } from '../../lib/prisma.js';
 import { AppError } from '../../lib/errors.js';
-import { OrderStatus, TableSessionStatus, UserRole, NotificationType } from '@prisma/client';
+import { OrderStatus, TableSessionStatus, TableStatus, UserRole, NotificationType } from '@prisma/client';
 import { CafeService } from '../cafe/service.js';
 import { OffersService } from '../offers/service.js';
 import { getSocketServer } from '../../websocket/index.js';
@@ -134,6 +134,14 @@ export class OrdersService {
         where: { tableId: data.tableId, status: TableSessionStatus.ACTIVE },
         include: { table: true },
       });
+    } else if (data.tableNumber) {
+      const table = await prisma.table.findUnique({ where: { tableNumber: data.tableNumber } });
+      if (table) {
+        session = await prisma.tableSession.findFirst({
+          where: { tableId: table.id, status: TableSessionStatus.ACTIVE },
+          include: { table: true },
+        });
+      }
     } else {
       // Look up current user's active session
       session = await prisma.tableSession.findFirst({
@@ -142,11 +150,48 @@ export class OrdersService {
       });
     }
 
+    // Auto-resolve or create active table session if not yet checked in
     if (!session || session.status !== TableSessionStatus.ACTIVE) {
-      throw AppError.badRequest(
-        'NO_ACTIVE_SESSION',
-        'An active table session is required to place a dine-in order. Please check in at a table first.',
-      );
+      let targetTable;
+      if (data.tableId) {
+        targetTable = await prisma.table.findUnique({ where: { id: data.tableId } });
+      } else if (data.tableNumber) {
+        targetTable = await prisma.table.findUnique({ where: { tableNumber: data.tableNumber } });
+      }
+      if (!targetTable) {
+        targetTable = await prisma.table.findFirst({
+          where: { isActive: true },
+          orderBy: { tableNumber: 'asc' },
+        });
+      }
+      if (!targetTable) {
+        targetTable = await prisma.table.create({
+          data: {
+            tableNumber: 1,
+            capacity: 4,
+            qrToken: 'table_qr_default',
+            status: TableStatus.AVAILABLE,
+          },
+        });
+      }
+
+      // Check for existing active session on targetTable or create a new active session
+      session = await prisma.tableSession.findFirst({
+        where: { tableId: targetTable.id, status: TableSessionStatus.ACTIVE },
+        include: { table: true },
+      });
+
+      if (!session) {
+        session = await prisma.tableSession.create({
+          data: {
+            tableId: targetTable.id,
+            hostUserId: user.id,
+            status: TableSessionStatus.ACTIVE,
+            guestCount: 1,
+          },
+          include: { table: true },
+        });
+      }
     }
 
     // 2. Fetch Cafe Profile for ordering status and GST rate

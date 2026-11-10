@@ -8,9 +8,10 @@ export const orderItemInputSchema = z.object({
 });
 
 export const placeOrderSchema = z.object({
-  sessionId: z.string().uuid().optional(),
-  qrToken: z.string().optional(),
-  tableId: z.string().uuid().optional(),
+  sessionId: z.string().uuid().optional().nullable(),
+  qrToken: z.string().optional().nullable(),
+  tableId: z.string().uuid().optional().nullable(),
+  tableNumber: z.number().int().optional().nullable(),
   items: z.array(orderItemInputSchema).min(1, 'Order must contain at least one item'),
   offerCode: z.string().optional().nullable(),
   specialInstructions: z.string().max(500).optional().nullable(),
