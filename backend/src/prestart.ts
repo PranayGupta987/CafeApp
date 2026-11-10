@@ -6,18 +6,55 @@ async function main() {
     console.log('Running prestart database verification...');
     await prisma.$connect();
 
-    // Check if initial User table exists
+    // Check if User table exists
     const tables: Array<{ table_name: string }> = await prisma.$queryRawUnsafe(`
       SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'User';
     `);
 
     if (!tables || tables.length === 0) {
-      console.log('User table not found. Resetting public schema to ensure clean initial migration...');
-      await prisma.$executeRawUnsafe('DROP SCHEMA public CASCADE;');
-      await prisma.$executeRawUnsafe('CREATE SCHEMA public;');
-      await prisma.$executeRawUnsafe('GRANT ALL ON SCHEMA public TO cafe;');
-      await prisma.$executeRawUnsafe('GRANT ALL ON SCHEMA public TO public;');
-      console.log('✅ Clean public schema prepared');
+      console.log('User table not found. Dropping partial tables and enums safely if any remain...');
+      const tableNames = [
+        'Notification',
+        'OrderStatusHistory',
+        'OrderItem',
+        'Order',
+        'TableSession',
+        'Reservation',
+        'Offer',
+        'MenuItem',
+        'MenuCategory',
+        'Table',
+        'CafeProfile',
+        'RefreshToken',
+        'User',
+        '_prisma_migrations',
+      ];
+      for (const t of tableNames) {
+        try {
+          await prisma.$executeRawUnsafe(`DROP TABLE IF EXISTS "${t}" CASCADE;`);
+        } catch {
+          // ignore individual drop errors
+        }
+      }
+
+      const typeNames = [
+        'UserRole',
+        'TableStatus',
+        'TableSessionStatus',
+        'ReservationStatus',
+        'OrderStatus',
+        'DiscountType',
+        'NotificationType',
+      ];
+      for (const t of typeNames) {
+        try {
+          await prisma.$executeRawUnsafe(`DROP TYPE IF EXISTS "${t}" CASCADE;`);
+        } catch {
+          // ignore individual drop errors
+        }
+      }
+
+      console.log('✅ Clean database state prepared');
     } else {
       // If schema exists, clean up any failed migration locks if any
       try {
