@@ -1,10 +1,101 @@
 import { Router } from "express";
-import { registerSchema, loginSchema, refreshSchema } from "./types.js";
+import { registerSchema, loginSchema, refreshSchema, googleAuthSchema } from "./types.js";
 import { prisma, hashPassword, verifyPassword, hashToken, ACCESS_SECRET } from "./service.js";
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
 
 const router = Router();
+
+router.post("/google", async (req, res, next) => {
+  try {
+    const data = googleAuthSchema.parse(req.body);
+    let verifiedEmail = data.email?.toLowerCase();
+    let verifiedName = data.name || "Google User";
+
+    if (data.idToken) {
+      // Verify token with Google
+      const googleRes = await fetch(
+        `https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(data.idToken)}`
+      );
+      if (!googleRes.ok) {
+        res.status(401).json({ error: "Invalid Google ID token" });
+        return;
+      }
+      const tokenInfo: any = await googleRes.json();
+      if (!tokenInfo.email) {
+        res.status(401).json({ error: "Google token did not contain an email address" });
+        return;
+      }
+      verifiedEmail = tokenInfo.email.toLowerCase();
+      verifiedName = tokenInfo.name || tokenInfo.given_name || verifiedName;
+    } else if (data.accessToken) {
+      // Verify access token with Google userinfo
+      const googleRes = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
+        headers: { Authorization: `Bearer ${data.accessToken}` },
+      });
+      if (!googleRes.ok) {
+        res.status(401).json({ error: "Invalid Google Access token" });
+        return;
+      }
+      const userInfo: any = await googleRes.json();
+      if (!userInfo.email) {
+        res.status(401).json({ error: "Google profile did not contain an email address" });
+        return;
+      }
+      verifiedEmail = userInfo.email.toLowerCase();
+      verifiedName = userInfo.name || userInfo.given_name || verifiedName;
+    }
+
+    if (!verifiedEmail) {
+      res.status(400).json({ error: "Could not verify Google account email" });
+      return;
+    }
+
+    let user = await prisma.user.findUnique({ where: { email: verifiedEmail } });
+    if (!user) {
+      // Auto-register new Google user
+      const dummyPassword = crypto.randomBytes(32).toString("hex");
+      const pwHash = await hashPassword(dummyPassword);
+      user = await prisma.user.create({
+        data: {
+          email: verifiedEmail,
+          passwordHash: pwHash,
+          name: verifiedName,
+          role: "CUSTOMER",
+          isActive: true,
+        },
+      });
+    }
+
+    if (!user.isActive) {
+      res.status(401).json({ error: "Account is inactive" });
+      return;
+    }
+
+    const accessToken = jwt.sign(
+      { sub: user.id, role: user.role, email: user.email },
+      ACCESS_SECRET,
+      { expiresIn: "15m" }
+    );
+    const refreshRaw = crypto.randomBytes(32).toString("hex");
+    const refreshHash = hashToken(refreshRaw);
+    await prisma.refreshToken.create({
+      data: {
+        userId: user.id,
+        tokenHash: refreshHash,
+        expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+      },
+    });
+
+    res.json({
+      accessToken,
+      refreshToken: refreshRaw,
+      user: { id: user.id, email: user.email, name: user.name, role: user.role },
+    });
+  } catch (e: any) {
+    next(e);
+  }
+});
 
 router.post("/register", async (req, res, next) => {
   try {

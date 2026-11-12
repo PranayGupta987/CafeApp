@@ -15,3 +15,16 @@ export const loginSchema = z.object({
 export const refreshSchema = z.object({
   refreshToken: z.string().min(1),
 });
+
+export const googleAuthSchema = z.object({
+  idToken: z.string().optional(),
+  accessToken: z.string().optional(),
+  email: z.string().email().optional(),
+  name: z.string().optional(),
+  googleId: z.string().optional(),
+}).refine((data) => data.idToken || data.accessToken || (data.email && data.googleId), {
+  message: "Either idToken, accessToken, or verified email and googleId is required",
+});
+
+export type GoogleAuthInput = z.infer<typeof googleAuthSchema>;
+
