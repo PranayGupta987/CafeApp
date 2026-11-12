@@ -1,11 +1,11 @@
-// Prisma schema for CafeApp - Comprehensive Phase 3 Database Schema
+// Prisma schema for CafeApp - MongoDB Atlas Phase 3 Schema
 
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "mongodb"
   url      = env("DATABASE_URL")
 }
 
@@ -62,7 +62,7 @@ enum NotificationType {
 }
 
 model User {
-  id            String         @id @default(uuid()) @db.Uuid
+  id            String         @id @default(auto()) @map("_id") @db.ObjectId
   email         String         @unique
   passwordHash  String
   name          String
@@ -84,12 +84,12 @@ model User {
 }
 
 model RefreshToken {
-  id           String    @id @default(uuid()) @db.Uuid
-  userId       String    @db.Uuid
+  id           String    @id @default(auto()) @map("_id") @db.ObjectId
+  userId       String    @db.ObjectId
   tokenHash    String    @unique
   expiresAt    DateTime
   revokedAt    DateTime?
-  replacedById String?   @db.Uuid
+  replacedById String?   @db.ObjectId
   createdAt    DateTime  @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -99,14 +99,14 @@ model RefreshToken {
 }
 
 model CafeProfile {
-  id                String   @id @default("00000000-0000-4000-8000-000000000001") @db.Uuid
+  id                String   @id @default(auto()) @map("_id") @db.ObjectId
   name              String
   description       String?
   address           String
   phone             String
   email             String
   gstin             String?
-  gstPercent        Decimal  @default(5.00) @db.Decimal(5, 2)
+  gstPercent        Float    @default(5.0)
   currency          String   @default("INR")
   timezone          String   @default("Asia/Kolkata")
   logoUrl           String?
@@ -120,10 +120,10 @@ model CafeProfile {
 }
 
 model Table {
-  id          String      @id @default(uuid()) @db.Uuid
+  id          String      @id @default(auto()) @map("_id") @db.ObjectId
   tableNumber Int         @unique
   capacity    Int
-  qrToken     String      @unique @db.VarChar(64)
+  qrToken     String      @unique
   status      TableStatus @default(AVAILABLE)
   isActive    Boolean     @default(true)
   createdAt   DateTime    @default(now())
@@ -135,11 +135,10 @@ model Table {
 
   @@index([status])
   @@index([isActive])
-  @@index([qrToken])
 }
 
 model MenuCategory {
-  id           String     @id @default(uuid()) @db.Uuid
+  id           String     @id @default(auto()) @map("_id") @db.ObjectId
   name         String     @unique
   description  String?
   displayOrder Int        @default(0)
@@ -154,8 +153,8 @@ model MenuCategory {
 }
 
 model MenuItem {
-  id                     String       @id @default(uuid()) @db.Uuid
-  categoryId             String       @db.Uuid
+  id                     String       @id @default(auto()) @map("_id") @db.ObjectId
+  categoryId             String       @db.ObjectId
   name                   String
   description            String?
   pricePaise             Int          // Integer paise (e.g. ₹250.00 = 25000)
@@ -178,7 +177,7 @@ model MenuItem {
 }
 
 model Offer {
-  id                    String       @id @default(uuid()) @db.Uuid
+  id                    String       @id @default(auto()) @map("_id") @db.ObjectId
   code                  String       @unique
   title                 String?
   description           String
@@ -192,15 +191,14 @@ model Offer {
   createdAt             DateTime     @default(now())
   updatedAt             DateTime     @updatedAt
 
-  @@index([code])
   @@index([isActive])
   @@index([validFrom, validTo])
 }
 
 model Reservation {
-  id              String            @id @default(uuid()) @db.Uuid
-  userId          String            @db.Uuid
-  tableId         String?           @db.Uuid
+  id              String            @id @default(auto()) @map("_id") @db.ObjectId
+  userId          String            @db.ObjectId
+  tableId         String?           @db.ObjectId
   partySize       Int
   reservationTime DateTime
   durationMinutes Int               @default(90)
@@ -219,9 +217,9 @@ model Reservation {
 }
 
 model TableSession {
-  id               String             @id @default(uuid()) @db.Uuid
-  tableId          String             @db.Uuid
-  hostUserId       String             @db.Uuid
+  id               String             @id @default(auto()) @map("_id") @db.ObjectId
+  tableId          String             @db.ObjectId
+  hostUserId       String             @db.ObjectId
   guestCount       Int                @default(1)
   status           TableSessionStatus @default(ACTIVE)
   checkedInAt      DateTime           @default(now())
@@ -240,11 +238,11 @@ model TableSession {
 }
 
 model Order {
-  id                  String      @id @default(uuid()) @db.Uuid
+  id                  String      @id @default(auto()) @map("_id") @db.ObjectId
   orderNumber         Int         @unique
-  sessionId           String      @db.Uuid
-  userId              String      @db.Uuid
-  tableId             String      @db.Uuid
+  sessionId           String      @db.ObjectId
+  userId              String      @db.ObjectId
+  tableId             String      @db.ObjectId
   status              OrderStatus @default(PLACED)
   subtotalPaise       Int
   discountPaise       Int         @default(0)
@@ -268,9 +266,9 @@ model Order {
 }
 
 model OrderItem {
-  id             String   @id @default(uuid()) @db.Uuid
-  orderId        String   @db.Uuid
-  menuItemId     String   @db.Uuid
+  id             String   @id @default(auto()) @map("_id") @db.ObjectId
+  orderId        String   @db.ObjectId
+  menuItemId     String   @db.ObjectId
   quantity       Int      @default(1)
   unitPricePaise Int      // Snapshot of price at time of ordering in paise
   subtotalPaise  Int      // quantity * unitPricePaise
@@ -285,10 +283,10 @@ model OrderItem {
 }
 
 model OrderStatusHistory {
-  id              String      @id @default(uuid()) @db.Uuid
-  orderId         String      @db.Uuid
+  id              String      @id @default(auto()) @map("_id") @db.ObjectId
+  orderId         String      @db.ObjectId
   status          OrderStatus
-  changedByUserId String?     @db.Uuid
+  changedByUserId String?     @db.ObjectId
   notes           String?
   createdAt       DateTime    @default(now())
 
@@ -301,8 +299,8 @@ model OrderStatusHistory {
 }
 
 model Notification {
-  id        String           @id @default(uuid()) @db.Uuid
-  userId    String           @db.Uuid
+  id        String           @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String           @db.ObjectId
   type      NotificationType
   title     String
   message   String

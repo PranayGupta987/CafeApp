@@ -11,7 +11,7 @@ export function createHealthRouter(prisma?: PrismaClient): Router {
 
     if (prisma) {
       try {
-        await prisma.$queryRaw`SELECT 1`;
+        await prisma.$runCommandRaw({ ping: 1 });
         dbStatus = 'connected';
       } catch {
         dbStatus = 'unreachable';

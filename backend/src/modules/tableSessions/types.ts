@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 export const checkInSchema = z.object({
   qrToken: z.string().optional(),
-  tableId: z.string().uuid().optional(),
+  tableId: z.string().min(1).optional(),
   guestCount: z.number().int().min(1).max(20).optional().default(1),
 }).refine((data) => data.qrToken || data.tableId, {
   message: 'Either qrToken or tableId must be provided',

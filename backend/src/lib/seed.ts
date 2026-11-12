@@ -18,40 +18,44 @@ async function hashPassword(pw: string): Promise<string> {
 export async function seedDatabase(prisma: PrismaClient): Promise<void> {
   console.log('🌱 Starting automatic database seed...');
 
-  // 1. Cafe Profile (Singleton ID)
-  const cafeId = '00000000-0000-4000-8000-000000000001';
-  const cafe = await prisma.cafeProfile.upsert({
-    where: { id: cafeId },
-    update: {
-      name: 'Cafe Rustica',
-      description: 'Artisanal Coffee & Gourmet Bistro',
-      address: '100 Feet Road, Indiranagar, Bangalore, Karnataka 560038',
-      phone: '+919876543210',
-      email: 'contact@caferustica.local',
-      gstin: '29ABCDE1234F1Z5',
-      gstPercent: 5.0,
-      currency: 'INR',
-      timezone: 'Asia/Kolkata',
-      openingTime: '08:00',
-      closingTime: '23:00',
-      isAcceptingOrders: true,
-    },
-    create: {
-      id: cafeId,
-      name: 'Cafe Rustica',
-      description: 'Artisanal Coffee & Gourmet Bistro',
-      address: '100 Feet Road, Indiranagar, Bangalore, Karnataka 560038',
-      phone: '+919876543210',
-      email: 'contact@caferustica.local',
-      gstin: '29ABCDE1234F1Z5',
-      gstPercent: 5.0,
-      currency: 'INR',
-      timezone: 'Asia/Kolkata',
-      openingTime: '08:00',
-      closingTime: '23:00',
-      isAcceptingOrders: true,
-    },
-  });
+  // 1. Cafe Profile
+  let cafe = await prisma.cafeProfile.findFirst();
+  if (cafe) {
+    cafe = await prisma.cafeProfile.update({
+      where: { id: cafe.id },
+      data: {
+        name: 'Cafe Rustica',
+        description: 'Artisanal Coffee & Gourmet Bistro',
+        address: '100 Feet Road, Indiranagar, Bangalore, Karnataka 560038',
+        phone: '+919876543210',
+        email: 'contact@caferustica.local',
+        gstin: '29ABCDE1234F1Z5',
+        gstPercent: 5.0,
+        currency: 'INR',
+        timezone: 'Asia/Kolkata',
+        openingTime: '08:00',
+        closingTime: '23:00',
+        isAcceptingOrders: true,
+      },
+    });
+  } else {
+    cafe = await prisma.cafeProfile.create({
+      data: {
+        name: 'Cafe Rustica',
+        description: 'Artisanal Coffee & Gourmet Bistro',
+        address: '100 Feet Road, Indiranagar, Bangalore, Karnataka 560038',
+        phone: '+919876543210',
+        email: 'contact@caferustica.local',
+        gstin: '29ABCDE1234F1Z5',
+        gstPercent: 5.0,
+        currency: 'INR',
+        timezone: 'Asia/Kolkata',
+        openingTime: '08:00',
+        closingTime: '23:00',
+        isAcceptingOrders: true,
+      },
+    });
+  }
   console.log(`✅ Cafe profile configured: ${cafe.name} (${cafe.id})`);
 
   // 2. Development Users across all roles

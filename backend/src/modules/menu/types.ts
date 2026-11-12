@@ -15,7 +15,7 @@ export const updateCategorySchema = z.object({
 });
 
 export const createMenuItemSchema = z.object({
-  categoryId: z.string().uuid('Valid category ID required'),
+  categoryId: z.string().min(1, 'Valid category ID required'),
   name: z.string().min(1, 'Item name is required'),
   description: z.string().optional().nullable(),
   pricePaise: z.number().int().positive('Price must be a positive integer in paise'),
@@ -28,7 +28,7 @@ export const createMenuItemSchema = z.object({
 });
 
 export const updateMenuItemSchema = z.object({
-  categoryId: z.string().uuid().optional(),
+  categoryId: z.string().min(1).optional(),
   name: z.string().min(1).optional(),
   description: z.string().optional().nullable(),
   pricePaise: z.number().int().positive().optional(),
