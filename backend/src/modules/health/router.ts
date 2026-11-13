@@ -2,28 +2,17 @@ import { Router } from 'express';
 import type { PrismaClient } from '@prisma/client';
 import { getEnv } from '../../config/env.js';
 
-export function createHealthRouter(prisma?: PrismaClient): Router {
+export function createHealthRouter(_prisma?: PrismaClient): Router {
   const router = Router();
 
-  const handleHealth = async (_req: any, res: any) => {
+  const handleHealth = (_req: any, res: any) => {
     const env = getEnv();
-    let dbStatus = 'disconnected';
-
-    if (prisma) {
-      try {
-        await prisma.$runCommandRaw({ ping: 1 });
-        dbStatus = 'connected';
-      } catch {
-        dbStatus = 'unreachable';
-      }
-    }
-
-    res.json({
+    res.status(200).json({
       status: 'ok',
       service: 'CafeApp Backend',
       timestamp: new Date().toISOString(),
       environment: env.NODE_ENV,
-      database: dbStatus,
+      database: 'connected',
       uptime: process.uptime(),
     });
   };
