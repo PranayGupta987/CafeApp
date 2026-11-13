@@ -17,7 +17,7 @@ async function main() {
   // Initialize Socket.IO
   initSocketServer(server);
 
-  server.listen(env.PORT, () => {
+  server.listen(env.PORT, '0.0.0.0', () => {
     logger.info(`API & WebSocket server running on port ${env.PORT}`);
     logger.info(`Health check: http://localhost:${env.PORT}/health or /api/v1/health`);
   });
