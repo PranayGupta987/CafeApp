@@ -6,7 +6,6 @@ import { getEnv } from './config/env.js';
 import { logger } from './lib/logger.js';
 import { initSocketServer } from './websocket/index.js';
 import { seedDatabase } from './lib/seed.js';
-import { execSync } from 'child_process';
 
 async function main() {
   const env = getEnv();
